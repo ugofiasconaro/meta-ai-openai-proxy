@@ -33,7 +33,7 @@ Il progetto è containerizzato utilizzando Docker per facilitare la distribuzion
 Naviga nella directory principale del progetto dove si trova il `Dockerfile` ed esegui il seguente comando:
 
 ```bash
-docker build -t meta-ai-wrap .
+docker build -t meta-ai-openai-proxy .
 ```
 
 ### 2. Acquisire i Cookie di Sessione (Prima Esecuzione o Rinnovo)
@@ -43,7 +43,7 @@ Per interagire con Meta AI, è necessario acquisire i cookie di sessione. Questo
 Per eseguire `grab_cookies.py` e salvare i cookie in un volume persistente, usa il seguente comando:
 
 ```bash
-docker run -it -v /percorso/sul/tuo/host:/app/data -e APP_MODE=grab_cookies -e WEBDRIVER_URL="http://127.0.0.1:4444" meta-ai-wrap
+docker run -it -v /percorso/sul/tuo/host:/app/data -e APP_MODE=grab_cookies -e WEBDRIVER_URL="http://127.0.0.1:4444" -e METAAI_USERNAME="fiascojob" meta-ai-openai-proxy
 ```
 
 - Sostituisci `/percorso/sul/tuo/host` con un percorso assoluto sul tuo sistema host dove vuoi che il file `session_data.json` venga salvato (es. `/c/Users/TuoUtente/meta_ai_data` su Windows con Git Bash/WSL, o `/home/tuoutente/meta_ai_data` su Linux/macOS).
@@ -58,7 +58,7 @@ Dopo aver eseguito il comando, si aprirà una finestra del browser. Effettua il 
 Una volta acquisiti i cookie, puoi avviare il server FastAPI. Questo server utilizzerà i cookie salvati per interagire con Meta AI.
 
 ```bash
-docker run -p 8000:8000 -v /percorso/sul/tuo/host:/app/data -e WEBDRIVER_URL="http://127.0.0.1:4444" -e SELENIUM_HEADLESS="true" meta-ai-wrap
+docker run -p 8000:8000 -v /percorso/sul/tuo/host:/app/data -e WEBDRIVER_URL="http://127.0.0.1:4444" -e SELENIUM_HEADLESS="true" -e METAAI_USERNAME="fiascojob" meta-ai-openai-proxy
 ```
 
 - `-p 8000:8000`: Mappa la porta 8000 del container alla porta 8000 del tuo host.
