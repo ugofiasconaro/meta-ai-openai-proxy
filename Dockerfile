@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.9-alpine
+FROM python:3.13-alpine
 
 # Set the working directory in the container
 WORKDIR /app
@@ -7,6 +7,7 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 RUN chmod +x /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/entrypoint.sh
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt

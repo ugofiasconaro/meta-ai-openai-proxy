@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  selenium:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - "7900:7900"
+    shm_size: 2gb
+    environment:
+      - SE_SUPERVISORD_UNIX_SERVER_PASSWORD=${SE_SUPERVISORD_UNIX_SERVER_PASSWORD}
+
+  meta-ai-proxy:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - WEBDRIVER_URL=http://selenium:4444
+      - SELENIUM_HEADLESS=true
+      - METAAI_USERNAME=fiascojob
+      - DEBUG_ENABLED=false
+    depends_on:
+      - selenium
