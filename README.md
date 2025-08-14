@@ -81,9 +81,10 @@ Il progetto utilizza le seguenti variabili d'ambiente configurabili tramite Dock
 
 #### Come ottenere `METAAI_USERNAME`
 
-Per ottenere il valore di `METAAI_USERNAME`, puoi fare riferimento alla seguente immagine:
+Per ottenere il valore di `METAAI_USERNAME`, Dopo il login sul tuo Meta AI vai su impostazioni di meta ai, e inserisci il tuo username senza il simbolo della "@" puoi fare riferimento alla seguente immagine:
 
-![Puoi trovare il tuo Meta AI Username dopo il login andando su impostazioni](Doc_Meta-AI-Wrapper_Username.png)
+
+![Puoi trovare il tuo Meta AI Username dopo il login andando su impostazioni ](Doc_Meta-AI-Wrapper_Username.png)
 
 
 
