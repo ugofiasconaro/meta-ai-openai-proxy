@@ -1,5 +1,4 @@
 __pycache__/
 .venv/
 .idea/
-data/*
-data/.*
+data/session_data.json
