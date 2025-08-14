@@ -408,7 +408,7 @@ async def chat_completions(request: Request):
     data = await request.json()
     async with processing_lock_request:
         user_message = data["messages"][-1]["content"]
-        model = data.get("model", "meta-ai-wrap")  # fallback
+        model = data.get("model", "meta-ai-openai-proxy")  # fallback
 
         # Estrai risposta dalla Web UI
         try:
@@ -506,7 +506,7 @@ webdriver_url = os.getenv("WEBDRIVER_URL", "http://127.0.0.1:4444")
 session_data = load_session_data()
 
 # Simuliamo una lista di modelli disponibili
-AVAILABLE_MODELS = ["meta-ai-wrap"]
+AVAILABLE_MODELS = ["meta-ai-openai-proxy"]
 
 
 
