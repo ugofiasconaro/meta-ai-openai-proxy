@@ -1,4 +1,5 @@
 # Author: Ugo Fiasconaro
+from doctest import debug
 import os
 import uvicorn
 from fastapi import FastAPI, Request
@@ -7,6 +8,8 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from typing import List
+from openai.types.chat import ChatCompletion, ChatCompletionMessage
+from openai.types.chat.chat_completion import Choice
 
 import json
 import asyncio
@@ -17,6 +20,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import time
+import uuid
+from typing import Dict, Any
 from threading import Thread
 from markdownify import markdownify as md
 
@@ -150,11 +155,25 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     if DEBUG_ENABLED.lower() == "true":
                         print ("Elem in ChatID 4")
 
-                    input_field.send_keys(message)
-                    input_field.send_keys(Keys.RETURN)
-
                     
-                    wait = WebDriverWait(driver, 40)
+                    message = md(message, strip=['style', 'script'], skip=['style', 'script'], wrap=False).replace("\t", "    ")
+                    
+                    messages = message.splitlines()
+
+
+                    for ea_msg in messages:
+                        input_field.send_keys(ea_msg)
+                        input_field.send_keys(Keys.SHIFT + Keys.ENTER)
+
+                    if DEBUG_ENABLED.lower() == "true":
+                        print("Messaggio Client: " + message)
+
+                    input_field.send_keys(Keys.RETURN)
+                    
+                    
+                    time.sleep(1)
+                    
+                    wait = WebDriverWait(driver, 120)
                     alliconsBot = wait.until(
                              lambda driver: (
                                 lambda els: els[numIcons] if len(els) >= numIcons + 1 and els[numIcons].is_displayed() else False
@@ -223,9 +242,11 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
 
                     if str(driver.current_url).__contains__("prompt"):
 
+                        beforeUrlChange = driver.current_url
+
                         verify_field.send_keys(Keys.LEFT_CONTROL, "k")
 
-                        input_field = WebDriverWait(driver, 10).until(
+                        input_field = WebDriverWait(driver, 40).until(
                             EC.presence_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@role='dialog']//div[@role='textbox']"""))
                         )
                         if DEBUG_ENABLED.lower() == "true":
@@ -236,11 +257,27 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                             print("Elemento 4 Ok")
 
 
+
                     numCheckBotMsgsBefore = 0
                     numIcons = 0
 
                     input_field.send_keys(message)
                     input_field.send_keys(Keys.RETURN)
+
+
+                    WebDriverWait(driver, 120).until(
+                        lambda driver: driver.execute_script("return document.readyState") == "complete"
+                    )
+                    print("Document.readyState Completato con successo")
+                    time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
+
+
+
+                    WebDriverWait(driver, 120).until(
+                        lambda driver: driver.execute_script("return document.readyState") == "complete"
+                    )
+                    print("Document.readyState Completato con successo")
+                    time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
 
                     WebDriverWait(driver, 120).until(
                             EC.visibility_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@dir='auto']"""))
@@ -341,6 +378,67 @@ async def main():
             driver.close()
 
 
+def markdown_to_openai_response(
+    markdown_content: str,
+    model: str = "meta-ai-openai-proxy",
+    user_message: str = "",
+    prompt_tokens: int = None,
+    completion_tokens: int = None
+) -> Dict[str, Any]:
+    """
+    Trasforma un blocco di testo Markdown in una risposta OpenAI-style.
+    
+    :param markdown_content: Il contenuto Markdown da restituire
+    :param model: Nome del modello (es. 'llama3', 'markdown-rag')
+    :param user_message: Messaggio dell'utente (per calcolo token)
+    :param prompt_tokens: Numero stimato di token del prompt (opzionale)
+    :param completion_tokens: Numero stimato di token della risposta (opzionale)
+    :return: Dizionario nel formato OpenAI chat.completion
+    """
+
+    response_message = {
+            "role": "assistant",
+            "content": "",  # ← MUST be present, even if empty
+            "tool_calls": [
+                {
+                    "id": "call_123",
+                    "type": "function",
+                    "function": {
+                        "name": "some_tool",
+                        "arguments": "{}"
+                    }
+                }
+            ]
+        }
+
+
+    # Stima token se non forniti (approssimazione: 1 token ≈ 4 parole in inglese)
+    if prompt_tokens is None:
+        prompt_tokens = len(user_message.split()) // 4 + 1 if user_message else 1
+    if completion_tokens is None:
+        completion_tokens = max(1, len(markdown_content.split()) // 4)
+
+    total_tokens = prompt_tokens + completion_tokens
+
+    response = ChatCompletion(
+    id=f"chatcmpl-{uuid.uuid4().hex[:16]}",
+    object="chat.completion",
+    created=int(time.time()),
+    model=model,
+    choices=[
+        Choice(
+            index=0,
+            message=ChatCompletionMessage(
+                role="assistant",
+                content=markdown_content.strip()
+            ),
+            finish_reason="stop"
+        )
+    ],
+    usage={"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens, "total_tokens": total_tokens}
+)
+
+    return response
 
 
 
@@ -352,6 +450,7 @@ async def send_message(request: Request):
 
 
     data = await request.json()
+    
     async with processing_lock_request:
 
         message = str(data.get("message")).strip()
@@ -471,6 +570,16 @@ async def chat_completions(request: Request):
                     "message": {
                         "role": "assistant",
                         "content": assistant_content
+                        # "tool_calls": [
+                        #     {
+                        #         "id": f"{uuid.uuid4().hex[:16]}",
+                        #         "type": "function",
+                        #         "function": {
+                        #             "name": "some_tool",
+                        #             "arguments": "{}"
+                        #         }
+                        #     }
+                        # ]
                     },
                     "logprobs": None,
                     "finish_reason": "stop"
@@ -482,6 +591,14 @@ async def chat_completions(request: Request):
                 "total_tokens": len(user_message.split()) + len(assistant_content.split())
             }
         }
+
+        # response = markdown_to_openai_response(markdown_content=assistant_content, model="meta-ai-openai-proxy",user_message=user_message,prompt_tokens=len(user_message.split()),completion_tokens=len(assistant_content.split()))
+        # response = json.loads(response.model_dump_json(indent=4))
+
+        if DEBUG_ENABLED.lower() == "true":
+            print("RISPOSTA a N8N ###### INIZIO ########")
+            print(json.dumps(response, indent=2))
+            print("RISPOSTA a N8N ###### FINE ########")
 
         return JSONResponse(content=response)
 
@@ -522,11 +639,15 @@ if __name__ == "__main__":
             driver = verify_selenium_instance(webdriver_url, session_data, driver)
             #driver = asyncio.run(verify_selenium_instance(webdriver_url, session_data, driver))
 
+        
         # Avvia il thread che mantiene viva la sessione
         keep_alive_thread = Thread(target=keep_alive, args=(driver,), daemon=True)
         keep_alive_thread.start()
 
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug")
+
+
+
 
 
     finally:

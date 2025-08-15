@@ -10,7 +10,7 @@ services:
       - SE_SUPERVISORD_UNIX_SERVER_PASSWORD=${SE_SUPERVISORD_UNIX_SERVER_PASSWORD}
 
   meta-ai-proxy:
-    build: .
+    image: ugofiasconaro/meta-ai-openai-proxy:latest
     ports:
       - "8000:8000"
     volumes:
@@ -18,7 +18,7 @@ services:
     environment:
       - WEBDRIVER_URL=http://selenium:4444
       - SELENIUM_HEADLESS=true
-      - METAAI_USERNAME=fiascojob
+      - METAAI_USERNAME=${METAAI_USERNAME}
       - DEBUG_ENABLED=false
     depends_on:
       - selenium
