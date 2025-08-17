@@ -170,8 +170,14 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
 
                     input_field.send_keys(Keys.RETURN)
                     
+                    WebDriverWait(driver, 120).until(
+                        lambda driver: driver.execute_script("return document.readyState") == "complete"
+                    )
+                    if DEBUG_ENABLED.lower() == "true":
+                        print("Document.readyState Completato con successo")
+                    time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
                     
-                    time.sleep(1)
+                    
                     
                     wait = WebDriverWait(driver, 120)
                     alliconsBot = wait.until(
