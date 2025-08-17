@@ -268,16 +268,17 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     WebDriverWait(driver, 120).until(
                         lambda driver: driver.execute_script("return document.readyState") == "complete"
                     )
-                    print("Document.readyState Completato con successo")
+                    if DEBUG_ENABLED.lower() == "true":
+                        print("Document.readyState Completato con successo")
                     time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
 
 
 
-                    WebDriverWait(driver, 120).until(
-                        lambda driver: driver.execute_script("return document.readyState") == "complete"
-                    )
-                    print("Document.readyState Completato con successo")
-                    time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
+                    # WebDriverWait(driver, 120).until(
+                    #     lambda driver: driver.execute_script("return document.readyState") == "complete"
+                    # )
+                    # print("Document.readyState Completato con successo")
+                    # time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
 
                     WebDriverWait(driver, 120).until(
                             EC.visibility_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@dir='auto']"""))
