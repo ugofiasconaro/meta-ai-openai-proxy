@@ -8,8 +8,8 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from typing import List
-from openai.types.chat import ChatCompletion, ChatCompletionMessage
-from openai.types.chat.chat_completion import Choice
+# from openai.types.chat import ChatCompletion, ChatCompletionMessage
+# from openai.types.chat.chat_completion import Choice
 
 import json
 import asyncio
@@ -379,67 +379,67 @@ async def main():
             driver.close()
 
 
-def markdown_to_openai_response(
-    markdown_content: str,
-    model: str = "meta-ai-openai-proxy",
-    user_message: str = "",
-    prompt_tokens: int = None,
-    completion_tokens: int = None
-) -> Dict[str, Any]:
-    """
-    Trasforma un blocco di testo Markdown in una risposta OpenAI-style.
+# def markdown_to_openai_response(
+#     markdown_content: str,
+#     model: str = "meta-ai-openai-proxy",
+#     user_message: str = "",
+#     prompt_tokens: int = None,
+#     completion_tokens: int = None
+# ) -> Dict[str, Any]:
+#     """
+#     Trasforma un blocco di testo Markdown in una risposta OpenAI-style.
     
-    :param markdown_content: Il contenuto Markdown da restituire
-    :param model: Nome del modello (es. 'llama3', 'markdown-rag')
-    :param user_message: Messaggio dell'utente (per calcolo token)
-    :param prompt_tokens: Numero stimato di token del prompt (opzionale)
-    :param completion_tokens: Numero stimato di token della risposta (opzionale)
-    :return: Dizionario nel formato OpenAI chat.completion
-    """
+#     :param markdown_content: Il contenuto Markdown da restituire
+#     :param model: Nome del modello (es. 'llama3', 'markdown-rag')
+#     :param user_message: Messaggio dell'utente (per calcolo token)
+#     :param prompt_tokens: Numero stimato di token del prompt (opzionale)
+#     :param completion_tokens: Numero stimato di token della risposta (opzionale)
+#     :return: Dizionario nel formato OpenAI chat.completion
+#     """
 
-    response_message = {
-            "role": "assistant",
-            "content": "",  # ← MUST be present, even if empty
-            "tool_calls": [
-                {
-                    "id": "call_123",
-                    "type": "function",
-                    "function": {
-                        "name": "some_tool",
-                        "arguments": "{}"
-                    }
-                }
-            ]
-        }
+#     response_message = {
+#             "role": "assistant",
+#             "content": "",  # ← MUST be present, even if empty
+#             "tool_calls": [
+#                 {
+#                     "id": "call_123",
+#                     "type": "function",
+#                     "function": {
+#                         "name": "some_tool",
+#                         "arguments": "{}"
+#                     }
+#                 }
+#             ]
+#         }
 
 
-    # Stima token se non forniti (approssimazione: 1 token ≈ 4 parole in inglese)
-    if prompt_tokens is None:
-        prompt_tokens = len(user_message.split()) // 4 + 1 if user_message else 1
-    if completion_tokens is None:
-        completion_tokens = max(1, len(markdown_content.split()) // 4)
+#     # Stima token se non forniti (approssimazione: 1 token ≈ 4 parole in inglese)
+#     if prompt_tokens is None:
+#         prompt_tokens = len(user_message.split()) // 4 + 1 if user_message else 1
+#     if completion_tokens is None:
+#         completion_tokens = max(1, len(markdown_content.split()) // 4)
 
-    total_tokens = prompt_tokens + completion_tokens
+#     total_tokens = prompt_tokens + completion_tokens
 
-    response = ChatCompletion(
-    id=f"chatcmpl-{uuid.uuid4().hex[:16]}",
-    object="chat.completion",
-    created=int(time.time()),
-    model=model,
-    choices=[
-        Choice(
-            index=0,
-            message=ChatCompletionMessage(
-                role="assistant",
-                content=markdown_content.strip()
-            ),
-            finish_reason="stop"
-        )
-    ],
-    usage={"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens, "total_tokens": total_tokens}
-)
+#     response = ChatCompletion(
+#     id=f"chatcmpl-{uuid.uuid4().hex[:16]}",
+#     object="chat.completion",
+#     created=int(time.time()),
+#     model=model,
+#     choices=[
+#         Choice(
+#             index=0,
+#             message=ChatCompletionMessage(
+#                 role="assistant",
+#                 content=markdown_content.strip()
+#             ),
+#             finish_reason="stop"
+#         )
+#     ],
+#     usage={"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens, "total_tokens": total_tokens}
+# )
 
-    return response
+#     return response
 
 
 

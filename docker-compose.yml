@@ -5,9 +5,8 @@ services:
     image: selenium/standalone-chrome:latest
     ports:
       - "7900:7900"
+      - "4444:4444"
     shm_size: 2gb
-    environment:
-      - SE_SUPERVISORD_UNIX_SERVER_PASSWORD=${SE_SUPERVISORD_UNIX_SERVER_PASSWORD}
 
   meta-ai-proxy:
     image: ugofiasconaro/meta-ai-openai-proxy:latest
