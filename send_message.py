@@ -124,13 +124,33 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
     
     if driver != None:
         if previous_chatID != "":
-            driver.get(f"https://www.meta.ai/prompt/{previous_chatID}")
+            
+            
+
+            WebDriverWait(driver, 120).until(
+                    lambda driver: driver.execute_script("return document.readyState") == "complete"
+                )
+            
+            if (driver.current_url.__contains__("prompt/")):
+                if (driver.current_url.split("prompt/")[-1] != previous_chatID):
+                    driver.get(f"https://www.meta.ai/prompt/{previous_chatID}") 
+            else:
+                driver.get(f"https://www.meta.ai/prompt/{previous_chatID}") 
             
             #if True:
             try:
                 # WebDriverWait(driver, 120).until(
                 #     EC.visibility_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@dir='auto']"""))
                 # )
+
+                WebDriverWait(driver, 120).until(
+                    lambda driver: driver.execute_script("return document.readyState") == "complete"
+                )
+                if DEBUG_ENABLED.lower() == "true":
+                    print("Document.readyState Completato con successo")
+                time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
+
+
                 WebDriverWait(driver, 40).until(
                     EC.visibility_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@role='textbox']"""))
                 )
@@ -159,15 +179,19 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     message = md(message, strip=['style', 'script'], skip=['style', 'script'], wrap=False).replace("\t", "    ")
                     
                     messages = message.splitlines()
+                    if messages.__len__() == 1:
+                        messages = message.split("\n")    
 
 
-                    for ea_msg in messages:
+                    for i, ea_msg in enumerate(messages):
                         input_field.send_keys(ea_msg)
+                        #if not (i < len(messages) - 1):
                         input_field.send_keys(Keys.SHIFT + Keys.ENTER)
+
 
                     if DEBUG_ENABLED.lower() == "true":
                         print("Messaggio Client: " + message)
-
+                    time.sleep(1)
                     input_field.send_keys(Keys.RETURN)
                     
                     WebDriverWait(driver, 120).until(
@@ -182,8 +206,9 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     wait = WebDriverWait(driver, 120)
                     alliconsBot = wait.until(
                              lambda driver: (
-                                lambda els: els[numIcons] if len(els) >= numIcons + 1 and els[numIcons].is_displayed() else False
+                                lambda els: els[numIcons] if len(els) >= numIcons + 1 else False
                                 )(driver.find_elements(By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//span[contains(@class, 'html-span')]/div[@role='button' and @id != '']"""))
+                            #and els[numIcons].is_displayed()
                             )
                     if DEBUG_ENABLED.lower() == "true":        
                         print ("Elem in ChatID 5")
@@ -202,8 +227,9 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     wait = WebDriverWait(driver, 10)
                     allBotMsg = wait.until(
                              lambda driver: (
-                                lambda els: els[numCheckBotMsgsBefore] if len(els) >= numCheckBotMsgsBefore + 1 and els[numCheckBotMsgsBefore].is_displayed() else False
+                                lambda els: els[numCheckBotMsgsBefore] if len(els) >= numCheckBotMsgsBefore + 1 else False
                                 )(driver.find_elements(By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@dir='auto']"""))
+                            #and els[numCheckBotMsgsBefore].is_displayed()
                             )
                     if DEBUG_ENABLED.lower() == "true":
                         print ("Elem in ChatID 7")
@@ -224,6 +250,11 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     raise Exception("More than one input field found")
                 else:
                     raise Exception("No input field found")
+            
+            except Exception as e:
+                print(f"Errore durante l'attesa del caricamento della pagina: {e}")
+                print(f"Blocco cambio pagina meta-AI previous_chatID: {previous_chatID}")
+
 
             finally:
                 pass
@@ -249,11 +280,25 @@ async def send_message_with_selenium (message, driver, previous_chatID=""):
                     if str(driver.current_url).__contains__("prompt"):
 
                         beforeUrlChange = driver.current_url
+                        driver.get(f"https://www.meta.ai")
 
-                        verify_field.send_keys(Keys.LEFT_CONTROL, "k")
+
+                        # verify_field.send_keys(Keys.LEFT_CONTROL, "k")
+                        # verify_field.send_keys(Keys.LEFT_CONTROL, "a")
+                        # verify_field.send_keys(Keys.DELETE)
+                        WebDriverWait(driver, 120).until(
+                            lambda driver: driver.execute_script("return document.readyState") == "complete"
+                        )
+                        if DEBUG_ENABLED.lower() == "true":
+                            print("Document.readyState Completato con successo")
+                        time.sleep(1) # Aggiunto un piccolo ritardo per stabilizzare il DOM
+
+
+
 
                         input_field = WebDriverWait(driver, 40).until(
-                            EC.presence_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@role='dialog']//div[@role='textbox']"""))
+                            #EC.presence_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@role='dialog']//div[@role='textbox']"""))
+                            EC.presence_of_element_located((By.XPATH, """//*[starts-with(@id, 'mount_0_0_')]//div[@role='textbox']"""))
                         )
                         if DEBUG_ENABLED.lower() == "true":
                             print("Elemento 3 Ok")
@@ -516,54 +561,69 @@ async def chat_completions(request: Request):
         user_message = data["messages"][-1]["content"]
         model = data.get("model", "meta-ai-openai-proxy")  # fallback
 
-        # Estrai risposta dalla Web UI
-        try:
+        need_to_retry = True
+        retries = 0
+        while need_to_retry and retries < 2:
 
-            global driver
-            global webdriver_url
-            global session_data
 
-            response = None
+            # Estrai risposta dalla Web UI
+            try:
 
-            prevChatID_from_request = data.get("prevChatID", "")
+                global driver
+                global webdriver_url
+                global session_data
 
-            if prevChatID_from_request == "":
-                # This is a new conversation or the client didn't provide a previous chat ID
-                # Initiate a new chat session if needed by sending "/new"
-                idx = 1
-                while response is None and idx <= 3:
-                    async with processing_lock_sendfunc:
-                        response = await send_message_with_selenium(message="/new", driver=driver, previous_chatID="")
-                    idx += 1
-                
-                if response:
-                    prevChatID_from_request = json.decoder.JSONDecoder().decode(response)['prevChatID']
-                    print("New chat ID obtained: ", prevChatID_from_request)
+                response = None
+
+                prevChatID_from_request = data.get("prevChatID", "")
+
+                if prevChatID_from_request == "":
+                    # This is a new conversation or the client didn't provide a previous chat ID
+                    # Initiate a new chat session if needed by sending "/new"
+                    idx = 1
+                    while response is None and idx <= 3:
+                        async with processing_lock_sendfunc:
+                            response = await send_message_with_selenium(message="/new", driver=driver, previous_chatID="")
+                        idx += 1
+                    
+                    if response:
+                        prevChatID_from_request = json.decoder.JSONDecoder().decode(response)['prevChatID']
+                        print("New chat ID obtained: ", prevChatID_from_request)
+                    else:
+                        raise Exception("Failed to initiate new chat session.")
+
+                    # Now send the actual user message
+                    response = None
+                    idx = 1
+                    while response is None and idx <= 3:
+                        async with processing_lock_sendfunc:
+                            response = await send_message_with_selenium(message=user_message, driver=driver, previous_chatID=prevChatID_from_request)
+                        idx += 1
                 else:
-                    raise Exception("Failed to initiate new chat session.")
-
-                # Now send the actual user message
-                response = None
-                idx = 1
-                while response is None and idx <= 3:
-                    async with processing_lock_sendfunc:
-                        response = await send_message_with_selenium(message=user_message, driver=driver, previous_chatID=prevChatID_from_request)
-                    idx += 1
-            else:
-                # Continue existing conversation
-                response = None
-                idx = 1
-                while response is None and idx <= 3:
-                    async with processing_lock_sendfunc:
-                        response = await send_message_with_selenium(message=user_message, driver=driver, previous_chatID=prevChatID_from_request)
-                    idx += 1
+                    # Continue existing conversation
+                    response = None
+                    idx = 1
+                    while response is None and idx <= 3:
+                        async with processing_lock_sendfunc:
+                            response = await send_message_with_selenium(message=user_message, driver=driver, previous_chatID=prevChatID_from_request)
+                        idx += 1
 
 
-            assistant_content = json.decoder.JSONDecoder().decode(response)['message'] 
-            chat_id = json.decoder.JSONDecoder().decode(response)['prevChatID']
-        except Exception as e:
-            return JSONResponse(content={"error": str(e)}, status_code=500)
+                assistant_content = json.decoder.JSONDecoder().decode(response)['message'] 
+                chat_id = json.decoder.JSONDecoder().decode(response)['prevChatID']
+                if str(assistant_content).strip() == "" and str(chat_id).strip().__len__() > 0:
+                    need_to_retry = True
+                    retries += 1
+                    continue
+                else:
+                    need_to_retry = False
+            
 
+            except Exception as e:
+                return JSONResponse(content={"error": str(e)}, status_code=500)
+
+        if need_to_retry:
+            assistant_content = "Error in reading Meta.AI Website"
         # Costruisci risposta OpenAI-compatible
         response = {
             "id": f"{chat_id}",
